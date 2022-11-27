@@ -1,16 +1,18 @@
-...
+import os
+import time
+
+import telegram
+from dotenv import load_dotenv
 
 load_dotenv()
 
-
-PRACTICUM_TOKEN = ...
-TELEGRAM_TOKEN = ...
-TELEGRAM_CHAT_ID = ...
+PRACTICUM_TOKEN = os.getenv('PR_TOKEN')
+TELEGRAM_TOKEN = os.getenv('TL_TOKEN')
+TELEGRAM_CHAT_ID = 795560582
 
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
 
 HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -19,8 +21,9 @@ HOMEWORK_VERDICTS = {
 }
 
 
-def check_tokens():
-    ...
+def check_tokens(*tokens) -> bool:
+    """ Проверяет доступность переменных окружения """
+    return all([token in os.environ for token in tokens])
 
 
 def send_message(bot, message):
@@ -43,7 +46,7 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-
+    check_tokens('PR_TOKEN', 'TL_TOKEN')
     ...
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
