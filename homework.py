@@ -1,6 +1,7 @@
 import os
 import time
 
+import requests
 import telegram
 from dotenv import load_dotenv
 
@@ -13,6 +14,7 @@ TELEGRAM_CHAT_ID = 795560582
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+
 
 HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -31,8 +33,9 @@ def send_message(bot, message):
 
 
 def get_api_answer(timestamp):
-    ...
-
+    PARAMS = {'from_date': timestamp}
+    homework_statuses = requests.get(ENDPOINT, headers=HEADERS, params=PARAMS)
+    return homework_statuses.json()
 
 def check_response(response):
     ...
