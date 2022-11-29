@@ -31,12 +31,12 @@ logging.basicConfig(
 
 
 def check_tokens(*tokens):
-    """Проверяет доступность переменных окружения"""
+    """Проверяет доступность переменных окружения."""
     return all(tokens)
 
 
 def send_message(bot, message):
-    """Отправляет сообщение в чат"""
+    """Отправляет сообщение в чат."""
     try:
         logging.info('Отправка сообщения начата')
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
@@ -46,7 +46,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(timestamp):
-    """Делает запрос к API"""
+    """Делает запрос к API."""
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
@@ -62,7 +62,7 @@ def get_api_answer(timestamp):
 
 
 def check_response(response):
-    """Проверяет ответ API на соответствие документации"""
+    """Проверяет ответ API на соответствие документации."""
     try:
         timestamp = response['current_date']
     except KeyError:
@@ -78,7 +78,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Извлекает статус домашней работы"""
+    """Извлекает статус домашней работы."""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     if homework_name is not None and homework_status is not None:
