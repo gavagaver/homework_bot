@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import time
 
 import requests
@@ -23,32 +24,25 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-formatter = logging.Formatter(
-    '%(asctime)s, %(levelname)s, %(message)s'
+logging.basicConfig(
+    format='%(asctime)s, %(name)s, %(levelname)s, %(message)s',
+    level=logging.INFO
 )
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 def check_tokens(*tokens):
     """Проверяет доступность переменных окружения"""
-    if not all([token in os.environ for token in tokens]):
-        logger.error('Ошибка импорта токенов')
-        return False
-    return True
+    return all(tokens)
 
 
 def send_message(bot, message):
     """Отправляет сообщение в чат"""
     try:
-        bot.send_message(TELEGRAM_CHAT_ID, message)
+        logging.info('Отправка сообщения начата')
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        logging.debug('Сообщение успешно отправлено')
     except Exception as error:
-        logger.error(f'Ошибка при обращении к API: {error}')
-    else:
-        logger.debug('Сообщение успешно отправлено')
+        logging.error(f'Сообщение не удалось отправить: {error}')
 
 
 def get_api_answer(timestamp):
@@ -72,11 +66,11 @@ def check_response(response):
     try:
         timestamp = response['current_date']
     except KeyError:
-        logger.error('Ключ current_date отсутствует в ответе API')
+        logging.error('Ключ current_date отсутствует в ответе API')
     try:
         homeworks = response['homeworks']
     except KeyError:
-        logger.error('Ключ homeworks отсутствует в ответе API')
+        logging.error('Ключ homeworks отсутствует в ответе API')
     if isinstance(timestamp, int) and isinstance(homeworks, list):
         return homeworks
     else:
@@ -100,9 +94,9 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-    if check_tokens('PR_TOKEN', 'TL_TOKEN', 'CHAT_ID') is False:
-        logger.critical('Токены не получены')
-        return 0
+    if not check_tokens(PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID):
+        logging.critical('Токены не получены')
+        sys.exit('Программа остановлена в связи с отсутствием токенов')
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
@@ -114,12 +108,13 @@ def main():
             if len(homeworks) > 0:
                 message = parse_status(homeworks[0])
                 send_message(bot, message)
-            timestamp = int(time.time())
-            time.sleep(RETRY_PERIOD)
+                timestamp = int(time.time())
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
+            time.sleep(RETRY_PERIOD)
+        finally:
             time.sleep(RETRY_PERIOD)
 
 
