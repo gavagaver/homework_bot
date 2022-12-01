@@ -60,8 +60,8 @@ def get_api_answer(current_timestamp):
     try:
         logging.info(
             (f'Начинаем подключение к эндпоинту {ENDPOINT}, с параметрами'
-             f' headers = {HEADERS} ;params= {params}.'
-             ).format(**request_params)
+             f' headers = {HEADERS} ;params= {params}.')
+
         )
         response = requests.get(
             **request_params
