@@ -8,6 +8,8 @@ import telegram
 from dotenv import load_dotenv
 from http import HTTPStatus
 
+from exceptions import WrongAPIResponseCodeError
+
 load_dotenv()
 
 PRACTICUM_TOKEN = os.getenv('PR_TOKEN')
@@ -40,24 +42,49 @@ def send_message(bot, message):
     try:
         logging.info('Отправка сообщения начата')
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-        logging.debug('Сообщение успешно отправлено')
-    except Exception as error:
+    except telegram.TelegramError as error:
         logging.error(f'Сообщение не удалось отправить: {error}')
-
-
-def get_api_answer(timestamp):
-    """Делает запрос к API."""
-    params = {'from_date': timestamp}
-    try:
-        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    except Exception as error:
-        raise SystemError(f'Ошибка выполнения запроса: {error}')
-    content = response.json()
-    if response.status_code == HTTPStatus.OK:
-        return content
     else:
-        raise SystemError(
-            f'Ошибка при запросе к API: {content.get("message")}'
+        logging.debug('Сообщение успешно отправлено')
+
+
+def get_api_answer(current_timestamp):
+    """Делает запрос к API."""
+    timestamp = current_timestamp or int(time.time())
+    params = {'from_date': timestamp}
+    request_params = {
+        'url': ENDPOINT,
+        'headers': HEADERS,
+        'params': params
+    }
+    try:
+        logging.info(
+            (f'Начинаем подключение к эндпоинту {ENDPOINT}, с параметрами'
+             f' headers = {HEADERS} ;params= {params}.'
+             ).format(**request_params)
+        )
+        response = requests.get(
+            **request_params
+        )
+        if response.status_code != HTTPStatus.OK:
+            raise WrongAPIResponseCodeError(
+                'Ответ сервера не является успешным:'
+                f' request params = {request_params};'
+                f' http_code = {response.status_code};'
+                f' reason = {response.reason}; content = {response.text}'
+            )
+        logging.info(f'Запрос к API выполнен. Ответ {response.status_code}')
+        return response.json()
+    except Exception as error:
+        raise ConnectionError(
+            (
+                'Во время подключения к эндпоинту {url} произошла'
+                ' непредвиденная ошибка: {error}'
+                ' headers = {headers}; params = {params};'
+            ).format(
+                error=error,
+                **request_params
+            )
         )
 
 
@@ -87,9 +114,9 @@ def parse_status(homework):
             return (f'Изменился статус проверки работы '
                     f'"{homework_name}". {verdict}')
         else:
-            raise SystemError('Статус работы не верен')
+            raise ValueError('Статус работы не верен')
     else:
-        raise SystemError('Информация не найдена')
+        raise ValueError('Информация не найдена')
 
 
 def main():
@@ -99,24 +126,48 @@ def main():
         sys.exit('Программа остановлена в связи с отсутствием токенов')
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time())
+    current_timestamp = int(time.time())
 
     while True:
+        current_report = {'name': '', 'output': ''}
+        prev_report = current_report.copy()
         try:
-            response = get_api_answer(timestamp)
+            response = get_api_answer(current_timestamp)
+            current_timestamp = response.get('current_date', current_timestamp)
             homeworks = check_response(response)
-            if len(homeworks) > 0:
-                message = parse_status(homeworks[0])
-                send_message(bot, message)
-                timestamp = int(time.time())
-
+            if homeworks:
+                current_report['name'] = homeworks[0]['homework_name']
+                current_report['output'] = parse_status(homeworks[0])
+            else:
+                current_report['output'] = (
+                    f'За период от {current_timestamp} до настоящего момента'
+                    ' домашних работ нет.'
+                )
+            if current_report != prev_report:
+                send_message(bot, current_report)
+                prev_report = current_report.copy()
+            else:
+                logging.debug('В ответе нет новых статусов.')
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
-            time.sleep(RETRY_PERIOD)
+            current_report['output'] = message
+            logging.error(message, exc_info=True)
+            if current_report != prev_report:
+                send_message(bot, current_report)
+                prev_report = current_report.copy()
         finally:
             time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        format=(
+            '%(asctime)s [%(levelname)s] - '
+            '(%(filename)s).%(funcName)s:%(lineno)d - %(message)s'
+        ),
+        level=logging.INFO,
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
     main()
