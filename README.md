@@ -8,26 +8,46 @@
 Когда статус проверки домашней работы изменен, бот присылает пользователю сообщение.  
 
 ## Установка и запуск
+1. [ ] Клонировать репозиторий и перейти в него в командной строке:
 
-1. [ ] Клонируем репозиторий 
 ```bash
- git clone git@github.com:gavagaver/homework_bot.git 
+git clone https://github.com/gavagaver/homework_bot.git && cd homework_bot
 ```
-1. [ ] Установите и активируйте виртуальное окружение
-1. [ ] Установите зависимости из файла requirements.txt
+
+1. [ ] Создать и активировать виртуальное окружение:
+
+###### Windows:
+```bash
+python -m venv venv
 ```
+```bash
+source venv/Scripts/activate
+```
+```bash
+python -m pip install --upgrade pip
+```
+###### Linux:
+```bash
+python3 -m venv venv
+```
+```bash
+source venv/bin/activate
+```
+```bash
+python3 -m pip install --upgrade pip
+```
+
+1. [ ] Установить зависимости
+```bash
 pip install -r requirements.txt
 ``` 
-1. [ ] В папке с файлом manage.py выполните команду:
-```
-python3 manage.py runserver
-```
-1. [ ] Создайте файл .env со следующими переменными:
+
+1. [ ] Создать файл со следующими переменными:
 ```
 PR_TOKEN - токен Яндекс.Практикума
 TL_TOKEN - токен Telegram-бота
 CHAT_ID - id пользователя
-```
+``` 
 
 ## Стек
 - Python 3.7
